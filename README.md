@@ -32,7 +32,7 @@
 ## 文件结构
 
 ```
-invest-reflect/
+dca-calculator/
 ├── README.md
 ├── .gitignore
 └── dca-calculator/              # 📊 DCA 择时计算器
