@@ -16,8 +16,11 @@ import json, sys, os
 from datetime import datetime
 
 # Windows 终端默认 GBK 编码不支持 emoji，强制使用 UTF-8 输出
-if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
-    sys.stdout.reconfigure(encoding="utf-8")
+try:
+    if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
+        sys.stdout.reconfigure(encoding="utf-8")
+except AttributeError:
+    pass  # 非 TextIOWrapper（如 IDE 自定义 stdout），跳过重配置
 
 try:
     import yfinance as yf
@@ -83,7 +86,7 @@ def generate_snapshot(data: dict) -> None:
         return
 
     with open(html_src, "r", encoding="utf-8") as f:
-        html = f.read()
+        html = f.read().replace("\r\n", "\n")  # 规范化 Windows CRLF，确保匹配稳定
 
     # 替换原有的 3 行数据加载块（精确字符串匹配）
     original_block = (
@@ -91,9 +94,11 @@ def generate_snapshot(data: dict) -> None:
         "<script>window.MARKET_DATA = null;</script>\n"
         '<script src="market_data.js" onerror="window.MARKET_DATA=null;"></script>'
     )
+    # 转义 </script>，防止 JSON 字段值中包含该字符串时提前关闭 script 块
+    safe_json = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
     inline_block = (
         f"<!-- 数据已内嵌（由 fetch_market_data.py 于 {data['updated']} 生成） -->\n"
-        f"<script>window.MARKET_DATA = {json.dumps(data, ensure_ascii=False)};</script>"
+        f"<script>window.MARKET_DATA = {safe_json};</script>"
     )
 
     if original_block not in html:
