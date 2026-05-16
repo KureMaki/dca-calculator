@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>S&P 500 择时定投计算器</title>
+<style>
+:root {
+  --bg:#f0f2f5; --card:#fff; --primary:#1a3a6c; --accent:#b8860b;
+  --text:#1a1a2e; --muted:#6b7280; --border:#e2e8f0;
+  --radius:12px; --shadow:0 2px 14px rgba(0,0,0,.07);
+  --sell2-c:#c0392b; --sell2-bg:#fdf2f2; --sell2-b:#e74c3c;
+  --sell1-c:#a84300; --sell1-bg:#fff4ee; --sell1-b:#e67e22;
+  --slow-c:#7a5c00;  --slow-bg:#fffde8;  --slow-b:#f0b429;
+  --norm-c:#374151;  --norm-bg:#f8f9fa;  --norm-b:#9ca3af;
+  --buy1-c:#155724;  --buy1-bg:#f0faf4;  --buy1-b:#38a169;
+  --buy2-c:#0c5460;  --buy2-bg:#e6fffa;  --buy2-b:#2b9b8e;
+  --buy3-c:#1e3a8a;  --buy3-bg:#eff6ff;  --buy3-b:#3b82f6;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Segoe UI",sans-serif;background:var(--bg);color:var(--text);line-height:1.65;padding:16px}
+.wrap{max-width:980px;margin:0 auto}
+
+/* Header */
+.header{text-align:center;padding:28px 0 20px}
+.header h1{font-size:22px;font-weight:700;color:var(--primary)}
+.header .sub{color:var(--muted);font-size:13px;margin-top:4px}
+.header .tagline{margin-top:10px;font-size:12px;color:var(--accent);font-style:italic}
+
+/* Card */
+.card{background:var(--card);border-radius:var(--radius);padding:22px 24px;box-shadow:var(--shadow);margin-bottom:16px}
+.card-title{font-size:15px;font-weight:700;color:var(--primary);padding-bottom:12px;margin-bottom:18px;border-bottom:2px solid var(--border);display:flex;align-items:center;gap:8px}
+.num-badge{width:22px;height:22px;border-radius:5px;background:var(--primary);color:#fff;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+
+/* Grid */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+@media(max-width:640px){.g2,.g3{grid-template-columns:1fr}}
+
+/* Form */
+.field{margin-bottom:16px}
+.field:last-child{margin-bottom:0}
+.label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;letter-spacing:.02em}
+.input-wrap{display:flex;align-items:stretch;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;transition:border-color .2s}
+.input-wrap:focus-within{border-color:var(--primary)}
+.input-wrap input{flex:1;border:none;outline:none;padding:9px 12px;font-size:15px;font-family:inherit;background:transparent;min-width:0}
+.sfx{padding:9px 12px;background:#f5f7fa;color:var(--muted);font-size:13px;border-left:1px solid var(--border);white-space:nowrap;display:flex;align-items:center}
+
+/* Currency toggle */
+.curr-toggle{display:flex;gap:6px;margin-bottom:16px}
+.curr-btn{padding:5px 14px;border:1.5px solid var(--border);border-radius:20px;font-size:13px;cursor:pointer;background:#fff;color:var(--muted);transition:all .15s;font-family:inherit}
+.curr-btn.active{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600}
+
+/* Radio group */
+.radio-group{display:flex;flex-wrap:wrap;gap:6px}
+.radio-btn{display:none}
+.radio-lbl{padding:6px 13px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer;color:var(--muted);transition:all .15s;user-select:none}
+.radio-btn:checked + .radio-lbl{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600}
+
+/* Slider */
+.slider-row{display:flex;align-items:center;gap:10px}
+.slider-row input[type=range]{flex:1;accent-color:var(--primary);height:4px}
+.slider-val{font-size:15px;font-weight:700;color:var(--primary);min-width:42px;text-align:right}
+
+/* Monthly amount section */
+.seg-group{display:inline-flex;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;margin-top:2px}
+.seg-btn{padding:5px 14px;border:none;border-right:1px solid var(--border);background:#fff;color:var(--muted);font-size:12px;font-family:inherit;cursor:pointer;transition:all .15s;white-space:nowrap}
+.seg-btn:last-child{border-right:none}
+.seg-btn:hover{background:#f0f4ff;color:var(--primary)}
+.seg-btn.active{background:var(--primary);color:#fff;font-weight:700}
+.alpha-note{font-size:12px;color:var(--muted);margin-top:6px;padding-left:2px}
+.alpha-note span{font-weight:600;color:var(--accent)}
+
+/* KPI */
+.kpi{background:#f8f9fa;border-radius:8px;padding:14px 16px;border-left:3px solid var(--primary)}
+.kpi.danger{border-color:#e74c3c}
+.kpi.success{border-color:#38a169}
+.kpi-lbl{font-size:11px;color:var(--muted);margin-bottom:3px;font-weight:500;letter-spacing:.04em;text-transform:uppercase}
+.kpi-val{font-size:22px;font-weight:800;color:var(--primary)}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:3px}
+
+/* Signal table */
+.tbl-wrap{overflow-x:auto}
+.sig-tbl{width:100%;border-collapse:collapse;font-size:13px}
+.sig-tbl thead tr{background:#f5f7fa}
+.sig-tbl th{padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--muted);border-bottom:2px solid var(--border);letter-spacing:.04em;white-space:nowrap}
+.sig-tbl td{padding:11px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+.sig-tbl tr:last-child td{border-bottom:none}
+.sig-tbl tr:hover td{background:#fafbfc}
+
+.badge{display:inline-block;padding:3px 9px;border-radius:4px;font-size:12px;font-weight:700;white-space:nowrap}
+.b-sell2{background:#fde8e8;color:var(--sell2-c)}
+.b-sell1{background:#feeee0;color:var(--sell1-c)}
+.b-slow {background:#fefce8;color:var(--slow-c)}
+.b-norm {background:#f3f4f6;color:#374151}
+.b-buy1 {background:#e8f5ee;color:var(--buy1-c)}
+.b-buy2 {background:#e6fffa;color:var(--buy2-c)}
+.b-buy3 {background:#eff6ff;color:var(--buy3-c)}
+
+.amt-big{font-size:16px;font-weight:800}
+.amt-lbl{font-size:11px;color:var(--muted);margin-top:1px}
+.floor-tag{font-size:10px;padding:1px 5px;border-radius:3px;background:#fff3cd;color:#856404;margin-left:5px;vertical-align:middle}
+.tbl-note{font-size:11px;color:var(--muted);margin-top:10px;line-height:1.8}
+
+/* Signal Checker */
+.checker-inputs{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
+@media(max-width:500px){.checker-inputs{grid-template-columns:1fr}}
+.result-wrap{display:none}
+.result-empty{color:var(--muted);font-size:14px;padding:12px 0}
+.result-card{border-radius:10px;padding:20px 22px;border-left:4px solid #ccc;transition:all .25s}
+.rc-sell2{border-color:var(--sell2-b);background:var(--sell2-bg)}
+.rc-sell1{border-color:var(--sell1-b);background:var(--sell1-bg)}
+.rc-slow {border-color:var(--slow-b); background:var(--slow-bg)}
+.rc-norm {border-color:var(--norm-b); background:var(--norm-bg)}
+.rc-buy1 {border-color:var(--buy1-b); background:var(--buy1-bg)}
+.rc-buy2 {border-color:var(--buy2-b); background:var(--buy2-bg)}
+.rc-buy3 {border-color:var(--buy3-b); background:var(--buy3-bg)}
+.res-signal{font-size:18px;font-weight:800;margin-bottom:4px}
+.res-action{font-size:14px;margin-bottom:14px}
+.res-amount{font-size:30px;font-weight:900;margin-bottom:3px}
+.res-sub{font-size:12px;color:var(--muted)}
+.ind-row{margin-top:14px}
+.ind-lbl{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+.ind-tags{display:flex;flex-wrap:wrap;gap:5px}
+.ind-tag{padding:3px 9px;border-radius:4px;font-size:11px;background:#e9ecef;color:#6c757d}
+.ind-tag.on   {background:#d4edda;color:#155724;font-weight:600}
+.ind-tag.off  {background:#f3f4f6;color:#9ca3af}
+.ind-tag.warn {background:#fff3cd;color:#856404}
+.ind-tag.pause{background:#fde8e8;color:#c0392b}
+.hr{height:1px;background:rgba(0,0,0,.08);margin:14px 0}
+
+/* Tab navigation */
+.tab-nav{display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--border)}
+.tab-btn{padding:10px 22px;border:none;background:none;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .15s}
+.tab-btn:hover{color:var(--primary)}
+.tab-btn.active{color:var(--primary);border-bottom-color:var(--primary)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* Logic overview */
+.lo-wrap{margin-bottom:20px}
+.lo-title-bar{font-size:13px;font-weight:700;color:var(--primary);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.lo-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:600px){.lo-grid{grid-template-columns:1fr}}
+.lo-box{border-radius:8px;padding:14px 16px;border:1px solid}
+.lo-red  {background:#fff9f9;border-color:#fca5a5}
+.lo-green{background:#f0faf4;border-color:#86efac}
+.lo-hd{font-size:13px;font-weight:700;margin-bottom:8px}
+.lo-rule{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:8px 0 4px;padding-top:6px;border-top:1px solid rgba(0,0,0,.07)}
+.lo-rule:first-of-type{margin-top:0;border-top:none}
+.lo-cond{font-size:12px;padding:5px 9px;background:rgba(0,0,0,.05);border-radius:5px;font-family:monospace;line-height:1.7}
+.lo-tier{display:flex;justify-content:space-between;padding:3px 0;font-size:12px;border-bottom:1px solid rgba(0,0,0,.05)}
+.lo-tier:last-child{border-bottom:none}
+.lo-range{color:var(--muted)}
+.lo-act-sell{font-weight:700;color:#c0392b}
+.lo-act-buy {font-weight:700;color:#155724}
+.lo-act-neu {font-weight:700;color:#374151}
+.lo-sigs{font-size:12px;line-height:2;color:#374151}
+.lo-sigs span{display:inline-block;min-width:170px}
+.lo-note{font-size:11px;color:var(--muted);font-style:italic;margin-top:6px}
+
+/* Strategy tuning panel */
+.strat-group{margin-bottom:18px}
+.strat-group-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid var(--border)}
+.strat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+@media(max-width:640px){.strat-grid{grid-template-columns:repeat(2,1fr)}}
+.strat-field{display:flex;flex-direction:column;gap:3px}
+.strat-label{font-size:11px;color:var(--muted);font-weight:500;line-height:1.3}
+.strat-input-row{display:flex;align-items:center;gap:4px}
+.strat-input{width:100%;border:1.5px solid var(--border);border-radius:6px;padding:5px 8px;font-size:13px;font-family:inherit;outline:none;transition:border-color .2s;background:#fff;color:var(--text)}
+.strat-input:focus{border-color:var(--primary)}
+.strat-input.changed{border-color:var(--accent);background:#fffdf0}
+.strat-sfx{font-size:11px;color:var(--muted);white-space:nowrap;flex-shrink:0}
+.strat-default{font-size:10px;color:#b0b8c4;margin-top:1px}
+.strat-save{padding:6px 16px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;background:#fff;color:var(--muted);font-family:inherit;font-weight:600;transition:all .15s}
+.strat-save:hover{border-color:var(--primary);color:var(--primary)}
+.strat-save.unsaved{background:var(--primary);border-color:var(--primary);color:#fff}
+.strat-save.unsaved:hover{background:#0f2a52}
+.strat-reset{padding:6px 14px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;background:#fff;color:var(--muted);font-family:inherit;transition:all .15s}
+.strat-reset:hover{border-color:var(--accent);color:var(--accent)}
+
+/* Data auto-fill status banner */
+.data-status{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:16px;line-height:1.6}
+.data-status.ok{background:#e8f5ee;border:1px solid #b8ddc8;color:#155724}
+.data-status.missing{background:#fff8e6;border:1px solid #ffd97a;color:#7a5c00}
+.data-status .ds-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.data-status .ds-main{font-weight:700}
+.data-status .ds-hint{opacity:.8;font-size:11px}
+.ds-code{font-family:monospace;background:rgba(0,0,0,.07);padding:1px 5px;border-radius:3px}
+
+/* Auto-filled field indicator */
+.auto-tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:3px;background:#d1ecf1;color:#0c5460;margin-left:5px;vertical-align:middle;font-weight:600;letter-spacing:.01em}
+.auto-tag.manual{background:#fff3cd;color:#856404}
+.field.auto-filled .input-wrap{border-color:#93c5fd}
+.field.auto-filled .input-wrap input{color:#1e3a8a}
+
+/* ERP computed display */
+.erp-box{padding:11px 14px;border-radius:8px;background:#f8f9fa;border:1px solid var(--border);margin-top:-4px;margin-bottom:16px;display:none}
+.erp-box .erp-label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;margin-bottom:4px}
+.erp-box .erp-val{font-size:20px;font-weight:900}
+.erp-box .erp-formula{font-size:11px;color:var(--muted);margin-top:2px;font-family:monospace}
+.erp-pos{color:#155724}.erp-neg{color:#c0392b}.erp-neu{color:#374151}
+
+footer{text-align:center;padding:20px 0;color:var(--muted);font-size:11px;line-height:1.8}
+</style>
+<!-- market_data.js 由 fetch_market_data.py 生成，若不存在则静默降级为手动填写模式 -->
+<script>window.MARKET_DATA = null;</script>
+<script src="market_data.js" onerror="window.MARKET_DATA=null;"></script>
+</head>
+<body>
+<div class="wrap">
+
+<!-- HEADER -->
+<div class="header">
+  <h1>📊 S&P 500 量化择时定投计算器</h1>
+  <div class="sub">四维信号体系 &nbsp;·&nbsp; CAPE &nbsp;·&nbsp; ERP &nbsp;·&nbsp; VIX &nbsp;·&nbsp; 距前高回撤</div>
+  <div class="tagline">平时装死赚慢钱，高位定卖收子弹，Y×X底线不能碰，股灾一出干满仓</div>
+</div>
+
+<!-- TAB NAV -->
+<div class="tab-nav">
+  <button class="tab-btn active" id="tb-calc" onclick="switchTab('calc')">📊 定投计算器</button>
+  <button class="tab-btn"        id="tb-strat" onclick="switchTab('strat')">⚙️ 策略后台</button>
+</div>
+
+<!-- TAB PANEL: 计算器 -->
+<div class="tab-panel active" id="tab-calc">
+
+<!-- SECTION 1: PARAMS -->
+<div class="card">
+  <div class="card-title"><span class="num-badge">①</span>策略参数设置</div>
+
+  <!-- Currency toggle -->
+  <div style="margin-bottom:18px">
+    <div class="label" style="margin-bottom:8px">投资货币</div>
+    <div class="curr-toggle">
+      <button class="curr-btn active" id="btnCNY" onclick="setCurr('CNY')">¥ 人民币</button>
+      <button class="curr-btn"        id="btnUSD" onclick="setCurr('USD')">$ 美元</button>
+    </div>
+  </div>
+
+  <div class="g2">
+    <!-- X -->
+    <div class="field">
+      <span class="label" id="xLabel">初始总资金 X（你现在准备投入的全部本金）</span>
+      <div class="input-wrap">
+        <input type="number" id="xVal" value="100" min="1" step="10">
+        <span class="sfx" id="xSfx">万元</span>
+      </div>
+    </div>
+
+    <!-- Y -->
+    <div class="field">
+      <span class="label">现金底线比例 Y（永远留着备战股灾，推荐 25%）</span>
+      <div class="slider-row">
+        <input type="range" id="yVal" min="10" max="40" step="5" value="25">
+        <span class="slider-val" id="yDisp">25%</span>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px" id="yNote">即保留 25 万不动，可用于部署的钱为 75 万</div>
+    </div>
+
+    <!-- Monthly amount (replaces α) -->
+    <div class="field">
+      <span class="label">每月基准定投金额（信号为"正常 1x"时，每月买入多少）</span>
+      <div class="input-wrap">
+        <input type="number" id="monthlyAmt" value="2000" min="1" step="100">
+        <span class="sfx" id="amtSfx">元/月</span>
+      </div>
+      <!-- Quick presets: deployment horizon (segmented) -->
+      <div style="font-size:11px;color:var(--muted);margin-bottom:5px">1x 正常模式下布局完成年数</div>
+      <div class="seg-group" id="presetBtns">
+        <button class="seg-btn" id="pb3"  onclick="setPreset(3)">3 年</button>
+        <button class="seg-btn active" id="pb5"  onclick="setPreset(5)">5 年 ★</button>
+        <button class="seg-btn" id="pb7"  onclick="setPreset(7)">7 年</button>
+        <button class="seg-btn" id="pb10" onclick="setPreset(10)">10 年</button>
+        <button class="seg-btn" id="pb15" onclick="setPreset(15)">15 年</button>
+      </div>
+      <div class="alpha-note" id="alphaNote">占本金 <span id="alphaPct">—</span>  ·  1x 正常模式下约 — 年布局完；危机加仓将加速</div>
+    </div>
+
+    <!-- Frequency -->
+    <div class="field">
+      <span class="label">执行频率（每次实际买入的操作间隔）</span>
+      <div class="radio-group">
+        <input type="radio" name="freq" id="f1"  class="radio-btn" value="1">
+        <label for="f1"  class="radio-lbl">月投</label>
+        <input type="radio" name="freq" id="f2"  class="radio-btn" value="2">
+        <label for="f2"  class="radio-lbl">双周投</label>
+        <input type="radio" name="freq" id="f4"  class="radio-btn" value="4" checked>
+        <label for="f4"  class="radio-lbl">周投 ★</label>
+        <input type="radio" name="freq" id="f20" class="radio-btn" value="20">
+        <label for="f20" class="radio-lbl">日投</label>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px" id="freqNote">每月定投金额会自动拆分到每周执行</div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 2: KPIs -->
+<div class="card">
+  <div class="card-title"><span class="num-badge">②</span>基础计算值</div>
+  <div class="g3">
+    <div class="kpi">
+      <div class="kpi-lbl" id="kZlbl">每周执行金额 Z</div>
+      <div class="kpi-val" id="kZ">—</div>
+      <div class="kpi-sub" id="kZsub">正常定投时每次操作的金额</div>
+    </div>
+    <div class="kpi danger">
+      <div class="kpi-lbl">现金底线 Y × X</div>
+      <div class="kpi-val" id="kFloor">—</div>
+      <div class="kpi-sub">低于此值停止普通定投，仅危机信号可动用</div>
+    </div>
+    <div class="kpi success">
+      <div class="kpi-lbl">可部署资金</div>
+      <div class="kpi-val" id="kDeploy">—</div>
+      <div class="kpi-sub" id="kDeploySub">—</div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 3: SIGNAL TABLE -->
+<div class="card">
+  <div class="card-title"><span class="num-badge">③</span>各档信号金额速查表</div>
+  <div class="tbl-wrap">
+    <table class="sig-tbl">
+      <thead>
+        <tr>
+          <th>信号档位</th>
+          <th>触发条件</th>
+          <th id="thPer">每周操作金额</th>
+          <th id="thMonthly">每月合计</th>
+          <th>说明</th>
+        </tr>
+      </thead>
+      <tbody id="sigTbody"></tbody>
+    </table>
+  </div>
+  <div class="tbl-note">
+    ★ <b>2x / 3x 加仓</b>可动用底线以下资金（策略最后防线）&ensp;｜&ensp;
+    卖出金额为上限目标，实际执行 <b>min（表中金额，持仓市值 × 2% ÷ 每月频次）</b>
+  </div>
+</div>
+
+<!-- SECTION 4: SIGNAL CHECKER -->
+<div class="card">
+  <div class="card-title"><span class="num-badge">④</span>当前信号判断</div>
+
+  <!-- 数据状态横幅 -->
+  <div class="data-status missing" id="dataStatus">
+    <span class="ds-icon">⚠️</span>
+    <span>
+      <span class="ds-main">VIX / 10Y / 回撤尚未自动加载</span><br>
+      <span class="ds-hint">在计算器同目录运行 <span class="ds-code">python fetch_market_data.py</span>，然后刷新页面，三项数据将自动填入</span>
+    </span>
+  </div>
+
+  <div class="checker-inputs">
+    <!-- CAPE：手动填写 -->
+    <div class="field">
+      <span class="label">
+        席勒市盈率 CAPE
+        <span class="auto-tag manual">手动填写</span>
+      </span>
+      <div class="input-wrap">
+        <input type="number" id="cCape" placeholder="例：36.0" step="0.1" min="5" max="80">
+        <span class="sfx">倍</span>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:5px">
+        📎 到
+        <a href="https://www.multpl.com/shiller-pe" target="_blank"
+           style="color:var(--primary);text-decoration:none;font-weight:600">multpl.com/shiller-pe</a>
+        查询，每日更新，建议每月初填一次即可
+      </div>
+    </div>
+
+    <!-- 10Y 收益率：自动填入 -->
+    <div class="field" id="f10y">
+      <span class="label">
+        10 年期美债收益率
+        <span class="auto-tag" id="tag10y">自动填入</span>
+      </span>
+      <div class="input-wrap">
+        <input type="number" id="cYield" placeholder="例：4.42" step="0.01" min="0" max="20">
+        <span class="sfx">%</span>
+      </div>
+    </div>
+
+    <!-- VIX：自动填入 -->
+    <div class="field" id="fVix">
+      <span class="label">
+        恐慌指数 VIX
+        <span class="auto-tag" id="tagVix">自动填入</span>
+      </span>
+      <div class="input-wrap">
+        <input type="number" id="cVix" placeholder="例：17.2" step="0.1" min="5" max="100">
+      </div>
+    </div>
+
+    <!-- 回撤：自动填入 -->
+    <div class="field" id="fDd">
+      <span class="label">
+        S&amp;P 500 距近 10 年高点回撤
+        <span class="auto-tag" id="tagDd">自动填入</span>
+      </span>
+      <div class="input-wrap">
+        <input type="number" id="cDd" placeholder="例：0" step="0.1" min="0" max="100">
+        <span class="sfx">%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ERP 自动计算展示 -->
+  <div class="erp-box" id="erpBox">
+    <div class="erp-label">股权风险溢价 ERP（自动计算）</div>
+    <div class="erp-val" id="erpVal">—</div>
+    <div class="erp-formula" id="erpFormula">= 1 ÷ CAPE − 10Y 收益率</div>
+  </div>
+
+  <div class="result-empty" id="emptyHint">← 填入 CAPE，其余三项运行脚本后自动填入，即可给出当前操作建议</div>
+
+  <div class="result-wrap" id="resultWrap">
+    <div class="result-card" id="resultCard">
+      <div class="res-signal" id="resSignal">—</div>
+      <div class="res-action" id="resAction">—</div>
+      <div class="res-amount" id="resAmount">—</div>
+      <div class="res-sub"    id="resSub">—</div>
+      <div class="hr"></div>
+      <div class="ind-row">
+        <div class="ind-lbl">指标触发详情</div>
+        <div class="ind-tags" id="indTags"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /tab-calc -->
+
+<!-- TAB PANEL: 策略后台 -->
+<div class="tab-panel" id="tab-strat">
+<div class="card">
+  <div class="card-title" style="justify-content:space-between">
+    <span style="display:flex;align-items:center;gap:8px">
+      <span class="num-badge">⚙</span>策略参数微调
+      <span style="font-size:12px;font-weight:400;color:var(--muted)">修改后逻辑图、信号表、判断结果同步更新</span>
+    </span>
+    <span id="saveBadge" style="font-size:11px;color:var(--muted);font-weight:400;white-space:nowrap">修改后自动保存</span>
+  </div>
+
+  <!-- 动态逻辑总览 -->
+  <div class="lo-wrap">
+    <div class="lo-title-bar">🗺 判断逻辑总览（基于当前参数）</div>
+    <div class="lo-grid" id="logicOverview"><!-- filled by JS --></div>
+  </div>
+  <hr style="border:none;border-top:1px solid var(--border);margin-bottom:18px">
+
+  <div>
+
+    <!-- 高估区 & 减仓 -->
+    <div class="strat-group">
+      <div class="strat-group-title">🔴 高估区判定 &amp; 减仓阈值</div>
+      <div class="strat-grid">
+        <div class="strat-field">
+          <span class="strat-label">CAPE 暂停候选线</span>
+          <div class="strat-input-row">
+            <input class="strat-input" type="number" id="s_capeNormal" value="38" step="0.5" min="20" max="60">
+            <span class="strat-sfx">倍</span>
+          </div>
+          <div class="strat-default">默认 38</div>
+        </div>
+        <div class="strat-field">
+          <span class="strat-label">CAPE 轻减线</span>
+          <div class="strat-input-row">
+            <input class="strat-input" type="number" id="s_capeLight" value="41" step="0.5" min="20" max="70">
+            <span class="strat-sfx">倍</span>
+          </div>
+          <div class="strat-default">默认 41</div>
+        </div>
+        <div class="strat-field">
+          <span class="strat-label">CAPE 撤退线</span>
+          <div class="strat-input-row">
+            <input class="strat-input" type="number" id="s_capeExtreme" value="44" step="0.5" min="20" max="80">
+            <span class="strat-sfx">倍</span>
+          </div>
+          <div class="strat-default">默认 44</div>
+        </div>
+        <div class="strat-field">
+          <span class="strat-label">ERP 暂停阈值（AND 条件）</span>
+          <div class="strat-input-row">
+            <input class="strat-input" type="number" id="s_erpPause" value="-1" step="0.1" min="-10" max="0">
+            <span class="strat-sfx">%</span>
+          </div>
+          <div class="strat-default">默认 −1%</div>
+        </div>
+        <div class="strat-field">
+          <span class="strat-label">缓投倍数（CAPE 低档）</span>
+          <div class="strat-input-row">
+            <input class="strat-input" type="number" id="s_multSlow" value="0.5" step="0.1" min="0.1" max="1">
+            <span class="strat-sfx">× Z</span>
+          </div>
+          <div class="strat-default">默认 0.5×</div>
+        </div>
+        <div class="strat-field">
+          <span class="strat-label">轻减倍数（CAPE 中档）</span>
+          <div class="strat-input-row">
+            <input class="strat-input" type="number" id="s_multSell1" value="1" step="0.1" min="0.1" max="3">
+            <span class="strat-sfx">× Z</span>
+          </div>
+          <div class="strat-default">默认 1.0×</div>
+        </div>
+        <div class="strat-field">
+          <span class="strat-label">撤退倍数（CAPE 高档）</span>
+          <div class="strat-input-row">
+            <input class="strat-input" type="number" id="s_multSell2" value="1.5" step="0.1" min="0.1" max="5">
+            <span class="strat-sfx">× Z</span>
+          </div>
+          <div class="strat-default">默认 1.5×</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 买入信号 -->
+    <div class="strat-group">
+      <div class="strat-group-title">🟢 买入信号阈值</div>
+      <div class="strat-grid">
+        <div class="strat-field">
+          <span class="strat-label">回撤弱信号下限</span>
+          <div class="strat-input-row">
+            <input class="strat-input" type="number" id="s_ddWeak1" value="5" step="1" min="1" max="20">
+            <span class="strat-sfx">%</span>
+          </div>
+          <div class="strat-default">默认 5%</div>
+        </div>
+        <div class="strat-field">
+          <span class="strat-label">回撤弱信号上限</span>
+          <div class="strat-input-row">
+            <input class="strat-input" type="number" id="s_ddWeak2" value="10" step="1" min="1" max="30">
+            <span class="strat-sfx">%</span>
+          </div>
+          <div class="strat-default">默认 10%</div>
+        </div>
+        <div class="strat-field">
+          <span class="strat-label">ERP 超吸引力线</span>
+          <div class="strat-input-row">
+            <input class="strat-input" type="number" id="s_erpBuy" value="2" step="0.1" min="0" max="10">
+            <span class="strat-sfx">%</span>
+          </div>
+          <div class="strat-default">默认 2%</div>
+        </div>
+        <div class="strat-field">
+          <span class="strat-label">VIX 极端恐慌线</span>
+          <div class="strat-input-row">
+            <input class="strat-input" type="number" id="s_vixPanic" value="30" step="1" min="15" max="80">
+          </div>
+          <div class="strat-default">默认 30</div>
+        </div>
+        <div class="strat-field">
+          <span class="strat-label">VIX 紧张预警线</span>
+          <div class="strat-input-row">
+            <input class="strat-input" type="number" id="s_vixWarn" value="25" step="1" min="10" max="60">
+          </div>
+          <div class="strat-default">默认 25</div>
+        </div>
+        <div class="strat-field">
+          <span class="strat-label">CAPE 历史低估线</span>
+          <div class="strat-input-row">
+            <input class="strat-input" type="number" id="s_capeCheap" value="28" step="0.5" min="10" max="40">
+            <span class="strat-sfx">倍</span>
+          </div>
+          <div class="strat-default">默认 28</div>
+        </div>
+        <div class="strat-field">
+          <span class="strat-label">CAPE 折价买入线</span>
+          <div class="strat-input-row">
+            <input class="strat-input" type="number" id="s_capeDiscount" value="32" step="0.5" min="10" max="45">
+            <span class="strat-sfx">倍</span>
+          </div>
+          <div class="strat-default">默认 32</div>
+        </div>
+        <div class="strat-field">
+          <span class="strat-label">回撤中级信号线</span>
+          <div class="strat-input-row">
+            <input class="strat-input" type="number" id="s_ddMid" value="25" step="1" min="10" max="50">
+            <span class="strat-sfx">%</span>
+          </div>
+          <div class="strat-default">默认 25%</div>
+        </div>
+        <div class="strat-field">
+          <span class="strat-label">回撤强力信号线</span>
+          <div class="strat-input-row">
+            <input class="strat-input" type="number" id="s_ddStrong" value="30" step="1" min="15" max="60">
+            <span class="strat-sfx">%</span>
+          </div>
+          <div class="strat-default">默认 30%</div>
+        </div>
+        <div class="strat-field">
+          <span class="strat-label">弱信号倍数</span>
+          <div class="strat-input-row">
+            <input class="strat-input" type="number" id="s_multBuy1" value="2" step="0.5" min="1" max="5">
+            <span class="strat-sfx">× Z</span>
+          </div>
+          <div class="strat-default">默认 2×</div>
+        </div>
+        <div class="strat-field">
+          <span class="strat-label">中强信号倍数</span>
+          <div class="strat-input-row">
+            <input class="strat-input" type="number" id="s_multBuy2" value="4" step="0.5" min="1" max="8">
+            <span class="strat-sfx">× Z</span>
+          </div>
+          <div class="strat-default">默认 4×</div>
+        </div>
+        <div class="strat-field">
+          <span class="strat-label">满仓信号倍数</span>
+          <div class="strat-input-row">
+            <input class="strat-input" type="number" id="s_multBuy3" value="6" step="0.5" min="1" max="10">
+            <span class="strat-sfx">× Z</span>
+          </div>
+          <div class="strat-default">默认 6×</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="strat-save" id="saveBtn" onclick="saveStrategy()">💾 保存设置</button>
+      <button class="strat-reset" onclick="resetStrategy()">↺ 恢复默认值</button>
+    </div>
+  </div>
+</div>
+</div><!-- /tab-strat -->
+
+<footer>
+  <div>本计算器基于《S&amp;P 500 量化择时定投策略手册》v3 &ensp;·&ensp; 仅供个人投资参考，不构成专业投资建议</div>
+  <div>CAPE 来源：multpl.com &ensp;·&ensp; 10Y 国债 / VIX / S&amp;P 500：FRED / Yahoo Finance</div>
+</footer>
+</div>
+
+<script>
+// ─── State ────────────────────────────────────────────────────
+let X = 1e6, Y = 0.25, monthlyAmt = 2000, f = 4, curr = 'CNY';
+let activePreset = 5; // deployment years; null = manual input
+
+// ─── Strategy parameters (all thresholds & multipliers) ──────
+const DEFAULTS = {
+  capeNormal:38, capeLight:41, capeExtreme:44, erpPause:-1,
+  capeCheap:28,  capeDiscount:32,
+  erpBuy:2, vixWarn:25, vixPanic:30,
+  ddWeak1:5, ddWeak2:10, ddMid:25, ddStrong:30,
+  multSlow:0.5, multSell1:1.0, multSell2:1.5,
+  multBuy1:2, multBuy2:4, multBuy3:6,
+};
+let S = { ...DEFAULTS };
+
+function readStrategy() {
+  const ids = Object.keys(DEFAULTS);
+  ids.forEach(k => {
+    const el = document.getElementById('s_' + k);
+    if (!el) return;
+    const v = parseFloat(el.value);
+    if (!isNaN(v)) S[k] = v;
+    el.classList.toggle('changed', Math.abs(v - DEFAULTS[k]) > 1e-9);
+  });
+  markUnsaved();
+  renderLogicOverview();
+  render();
+  runChecker();
+}
+
+function resetStrategy() {
+  S = { ...DEFAULTS };
+  Object.keys(DEFAULTS).forEach(k => {
+    const el = document.getElementById('s_' + k);
+    if (el) { el.value = DEFAULTS[k]; el.classList.remove('changed'); }
+  });
+  localStorage.removeItem('dca_strategy');
+  markSaved('已恢复默认值', '#856404');
+  renderLogicOverview();
+  render();
+  runChecker();
+}
+
+function loadSavedStrategy() {
+  const raw = localStorage.getItem('dca_strategy');
+  if (!raw) return;
+  try {
+    const saved = JSON.parse(raw);
+    S = { ...DEFAULTS, ...saved };   // 新增字段用默认值兜底
+    Object.keys(DEFAULTS).forEach(k => {
+      const el = document.getElementById('s_' + k);
+      if (!el) return;
+      el.value = S[k];
+      el.classList.toggle('changed', Math.abs(S[k] - DEFAULTS[k]) > 1e-9);
+    });
+    markSaved('✓ 已读取上次保存', '#155724');
+  } catch(e) { localStorage.removeItem('dca_strategy'); }
+}
+
+function saveStrategy() {
+  localStorage.setItem('dca_strategy', JSON.stringify(S));
+  markSaved('✓ 已保存', '#155724');
+}
+
+function markUnsaved() {
+  const badge = document.getElementById('saveBadge');
+  const btn   = document.getElementById('saveBtn');
+  if (badge) { badge.textContent = '● 有未保存的修改'; badge.style.color = '#b45309'; }
+  if (btn)   { btn.classList.add('unsaved'); }
+}
+
+function markSaved(txt, color) {
+  const badge = document.getElementById('saveBadge');
+  const btn   = document.getElementById('saveBtn');
+  if (badge) { badge.textContent = txt; badge.style.color = color; }
+  if (btn)   { btn.classList.remove('unsaved'); }
+}
+
+function renderLogicOverview() {
+  const el = document.getElementById('logicOverview');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="lo-box lo-red">
+      <div class="lo-hd">🔴 暂停 / 减仓路径</div>
+      <div class="lo-rule">触发条件（两者缺一不可）</div>
+      <div class="lo-cond">CAPE &gt; <b>${S.capeNormal}</b><br>AND &nbsp;ERP &lt; <b>${S.erpPause}%</b></div>
+      <div class="lo-rule">满足后按 CAPE 细分档位</div>
+      <div class="lo-tier">
+        <span class="lo-range">CAPE ${S.capeNormal} – ${S.capeLight}</span>
+        <span class="lo-act-neu">缓投 ${S.multSlow}Z</span>
+      </div>
+      <div class="lo-tier">
+        <span class="lo-range">CAPE ${S.capeLight} – ${S.capeExtreme}</span>
+        <span class="lo-act-sell">轻减 −${S.multSell1}Z</span>
+      </div>
+      <div class="lo-tier">
+        <span class="lo-range">CAPE &gt; ${S.capeExtreme}</span>
+        <span class="lo-act-sell">撤退 −${S.multSell2}Z</span>
+      </div>
+      <div class="lo-note">⚠ 若买入强度 ≥ 2（强信号），减仓路径暂不覆盖</div>
+    </div>
+
+    <div class="lo-box lo-green">
+      <div class="lo-hd">🟢 正常 / 买入路径</div>
+      <div class="lo-rule">各指标独立评分（强度取最高值，多项共振 +1）</div>
+      <div class="lo-sigs">
+        <span>回撤 ${S.ddWeak1}–${S.ddWeak2}%</span>→ 强度 1<br>
+        <span>回撤 ≥ ${S.ddMid}%</span>→ 强度 2<br>
+        <span>回撤 ≥ ${S.ddStrong}%</span>→ 强度 3<br>
+        <span>VIX &gt; ${S.vixPanic}</span>→ 强度 2<br>
+        <span>ERP &gt; ${S.erpBuy}%</span>→ 强度 3<br>
+        <span>CAPE &lt; ${S.capeCheap}</span>→ 强度 2<br>
+        <span>CAPE ${S.capeCheap}–${S.capeDiscount}</span>→ 强度 1
+      </div>
+      <div class="lo-rule">最终执行档位</div>
+      <div class="lo-tier"><span class="lo-range">无信号</span><span class="lo-act-neu">1Z 正常定投</span></div>
+      <div class="lo-tier"><span class="lo-range">强度 1</span><span class="lo-act-buy">${S.multBuy1}Z 加仓 A</span></div>
+      <div class="lo-tier"><span class="lo-range">强度 2</span><span class="lo-act-buy">${S.multBuy2}Z 加仓 B</span></div>
+      <div class="lo-tier"><span class="lo-range">强度 3</span><span class="lo-act-buy">${S.multBuy3}Z 满仓买入</span></div>
+    </div>
+  `;
+}
+
+function switchTab(t) {
+  ['calc','strat'].forEach(id => {
+    document.getElementById('tab-' + id).classList.toggle('active', id === t);
+    document.getElementById('tb-'  + id).classList.toggle('active', id === t);
+  });
+}
+
+// ─── Currency helpers ─────────────────────────────────────────
+const CS  = () => curr === 'CNY' ? '¥' : '$';
+const UNIT = () => curr === 'CNY' ? '万元' : '万美元';
+const AMT_SFX = () => curr === 'CNY' ? '元/月' : '美元/月';
+
+// ─── Format helpers ───────────────────────────────────────────
+function fmt(n) {
+  if (n == null || isNaN(n)) return '—';
+  const neg = n < 0, abs = Math.abs(n);
+  let s;
+  if (abs >= 1e6)      s = (abs/1e4).toFixed(0) + '万';
+  else if (abs >= 1e4) s = (abs/1e4).toFixed(2).replace(/\.?0+$/,'') + '万';
+  else if (abs >= 1e3) s = abs.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  else                 s = abs.toFixed(0);
+  return (neg ? '−' : '') + CS() + s;
+}
+const yuan = n => fmt(n) + ' ' + (curr==='CNY'?'元':'美元');
+
+// Frequency labels
+const fName   = () => ({1:'月',2:'双周',4:'周',20:'日'})[f];
+const fPerStr = () => ({1:'每月',2:'每双周',4:'每周',20:'每日'})[f];
+const fNote   = () => ({
+  1: '每月第一个交易日执行一次',
+  2: '每月1日和15日各执行一次',
+  4: '每周一执行，月内平摊买入成本（推荐）',
+  20:'每个交易日执行，适合自动化或大额资金',
+})[f];
+
+// Alpha note
+function alphaNote(amt, X) {
+  const pct = amt / X * 100;
+  const deployYrs = ((1 - Y) * X / (amt * 12) / 1).toFixed(1);
+  return { pct: pct.toFixed(2), deployYrs };
+}
+
+// ─── Currency toggle ─────────────────────────────────────────
+function setCurr(c) {
+  curr = c;
+  document.getElementById('btnCNY').classList.toggle('active', c==='CNY');
+  document.getElementById('btnUSD').classList.toggle('active', c==='USD');
+  document.getElementById('xSfx').textContent  = UNIT();
+  document.getElementById('amtSfx').textContent = AMT_SFX();
+  render();
+}
+
+// ─── Preset buttons (deployment horizon) ─────────────────────
+function presetAmt(years) {
+  // Deploy (1-Y)*X over N years at 1x pace
+  return Math.round((1 - Y) * X / (years * 12));
+}
+function setPreset(years) {
+  activePreset = years;
+  monthlyAmt = presetAmt(years);
+  document.getElementById('monthlyAmt').value = monthlyAmt;
+  highlightPreset(years);
+  render();
+}
+function highlightPreset(years) {
+  [3, 5, 7, 10, 15].forEach(y => {
+    const el = document.getElementById('pb' + y);
+    if (el) el.classList.toggle('active', y === years);
+  });
+  // also keep seg-btn active style consistent (same class name)
+}
+
+// ─── Signal logic (uses S = STRATEGY params) ─────────────────
+function calcSignal(cape, erp, vix, dd) {
+  const buys = [], tags = [];
+
+  if      (dd >= S.ddStrong)                  { buys.push(3); tags.push({l:`回撤 ${dd.toFixed(1)}% ≥ ${S.ddStrong}%  强度3`,t:'on'}); }
+  else if (dd >= S.ddMid)                     { buys.push(2); tags.push({l:`回撤 ${dd.toFixed(1)}% ≥ ${S.ddMid}%  强度2`,t:'on'}); }
+  else if (dd >= S.ddWeak1 && dd < S.ddWeak2) { buys.push(1); tags.push({l:`回撤 ${dd.toFixed(1)}%  ${S.ddWeak1}-${S.ddWeak2}%  强度1`,t:'on'}); }
+  else if (dd >= S.ddWeak2)                   { tags.push({l:`回撤 ${dd.toFixed(1)}%  正常区 ${S.ddWeak2}-${S.ddMid}%`,t:'off'}); }
+  else                                        { tags.push({l:`回撤 ${dd.toFixed(1)}%  历史高位附近`,t:'off'}); }
+
+  if      (vix > S.vixPanic)                  { buys.push(2); tags.push({l:`VIX ${vix.toFixed(1)} > ${S.vixPanic}  极端恐慌  强度2`,t:'on'}); }
+  else if (vix >= S.vixWarn)                  { tags.push({l:`VIX ${vix.toFixed(1)}  ${S.vixWarn}-${S.vixPanic}  紧张预警`,t:'warn'}); }
+  else                                        { tags.push({l:`VIX ${vix.toFixed(1)}  正常`,t:'off'}); }
+
+  if      (erp > S.erpBuy)                    { buys.push(3); tags.push({l:`ERP ${erp.toFixed(2)}% > ${S.erpBuy}%  极具吸引力  强度3`,t:'on'}); }
+  else if (erp >= S.erpPause)                 { tags.push({l:`ERP ${erp.toFixed(2)}%  正常区间`,t:'off'}); }
+  else                                        { tags.push({l:`ERP ${erp.toFixed(2)}% < ${S.erpPause}%  股票偏贵`,t:'pause'}); }
+
+  if      (cape < S.capeCheap)                { buys.push(2); tags.push({l:`CAPE ${cape.toFixed(1)} < ${S.capeCheap}  历史便宜  强度2`,t:'on'}); }
+  else if (cape <= S.capeDiscount)            { buys.push(1); tags.push({l:`CAPE ${cape.toFixed(1)}  ${S.capeCheap}-${S.capeDiscount}  偏低  强度1`,t:'on'}); }
+  else if (cape <= S.capeNormal)              { tags.push({l:`CAPE ${cape.toFixed(1)}  正常偏贵`,t:'off'}); }
+  else                                        { tags.push({l:`CAPE ${cape.toFixed(1)} > ${S.capeNormal}  高估候选`,t:'pause'}); }
+
+  let eff = -1;
+  if (buys.length > 0) {
+    const mx = Math.max(...buys), res = buys.length > 1;
+    eff = Math.min(mx + (res ? 1 : 0), 3);
+    if (res) tags.push({l:`共振加成 +1（${buys.length} 项信号触发）`,t:'on'});
+  }
+
+  const pause = cape > S.capeNormal && erp < S.erpPause;
+  if (pause && eff < 2) {
+    const tier = cape <= S.capeLight ? 'slow' : cape <= S.capeExtreme ? 'sell1' : 'sell2';
+    return { tier, eff:-2, tags };
+  }
+  const tier = eff === -1 ? 'norm' : eff===1 ? 'buy1' : eff===2 ? 'buy2' : 'buy3';
+  return { tier, eff, tags };
+}
+
+function tierAmt(tier, Z) {
+  return {
+    sell2: -S.multSell2*Z, sell1: -S.multSell1*Z, slow: S.multSlow*Z,
+    norm: Z, buy1: S.multBuy1*Z, buy2: S.multBuy2*Z, buy3: S.multBuy3*Z,
+  }[tier] ?? Z;
+}
+
+// ─── Main render ─────────────────────────────────────────────
+function render() {
+  const Z     = monthlyAmt / f;   // per-period amount
+  const alpha = monthlyAmt / X;
+  const floor = Y * X;
+  const dep   = X - floor;
+
+  // Update alpha note
+  const an = alphaNote(monthlyAmt, X);
+  document.getElementById('alphaPct').textContent = an.pct + '%';
+  document.getElementById('alphaNote').querySelector('span').nextSibling.textContent =
+    `  ·  1x 正常模式下约 ${an.deployYrs} 年布局完；危机加仓将加速`;
+
+  // Y note
+  document.getElementById('yNote').textContent =
+    `即保留 ${fmt(floor).replace(/[¥$]/,'')} 不动，可用于部署的资金为 ${fmt(dep).replace(/[¥$]/,'')}`;
+
+  // Freq note
+  document.getElementById('freqNote').textContent = fNote();
+
+  // KPIs
+  const perLbl = fPerStr() + '执行金额 Z';
+  document.getElementById('kZlbl').textContent = perLbl;
+  document.getElementById('kZ').textContent    = fmt(Z);
+  document.getElementById('kZsub').textContent =
+    f === 1 ? '直接等于每月基准定投金额' :
+    `${monthlyAmt.toLocaleString()} 元/月 ÷ ${f} = 每${fName()}执行此金额`;
+  document.getElementById('kFloor').textContent = fmt(floor);
+  document.getElementById('kDeploy').textContent = fmt(dep);
+  const yrs1x = (dep / monthlyAmt) / 12;
+  document.getElementById('kDeploySub').textContent =
+    `1x 模式约 ${yrs1x.toFixed(0)} 年部署，3x 危机约 ${(yrs1x/3).toFixed(0)} 年`;
+
+  // Table headers
+  document.getElementById('thPer').textContent     = `每${fName()}操作金额`;
+  document.getElementById('thMonthly').textContent = f===1 ? '（月投无需换算）' : `每月合计（×${f}）`;
+
+  // Signal table rows — dynamic from S params
+  const rows = [
+    {badge:'暂停·撤退', bc:'b-sell2', cond:`AND触发 · CAPE > ${S.capeExtreme}`,                              per:-S.multSell2*Z, z:`${S.multSell2}Z`, note:'极端泡沫（历史仅2000年）', brk:false},
+    {badge:'暂停·轻减', bc:'b-sell1', cond:`AND触发 · CAPE ${S.capeLight}–${S.capeExtreme}`,                  per:-S.multSell1*Z, z:`${S.multSell1}Z`, note:'高估确认，温和回收子弹',   brk:false},
+    {badge:'缓投',      bc:'b-slow',  cond:`AND触发 · CAPE ${S.capeNormal}–${S.capeLight}`,                   per:S.multSlow*Z,   z:`${S.multSlow}Z`,  note:'减速不停止，保持最低参与', brk:false},
+    {badge:'1x 正常',   bc:'b-norm',  cond:'无特殊信号',                                                      per:Z,              z:'1Z',              note:'基准节奏',                 brk:false},
+    {badge:'加仓 A',    bc:'b-buy1',  cond:'弱买入信号',                                                      per:S.multBuy1*Z,   z:`${S.multBuy1}Z`,  note:'温和机会，轻度加仓',       brk:false},
+    {badge:'加仓 B',    bc:'b-buy2',  cond:'中强信号触发',                                                    per:S.multBuy2*Z,   z:`${S.multBuy2}Z`,  note:'明显机会，中度加仓',       brk:true },
+    {badge:'满仓',      bc:'b-buy3',  cond:'强信号共振',                                                      per:S.multBuy3*Z,   z:`${S.multBuy3}Z`,  note:'危机重拳，满仓买入',       brk:true },
+  ];
+  const tbody = document.getElementById('sigTbody');
+  tbody.innerHTML = '';
+  rows.forEach(r => {
+    const sell = r.per < 0, abs = Math.abs(r.per);
+    const mono = f===1 ? '<span style="color:#bbb">同左</span>' :
+                 `<b>${fmt(abs*f)}</b> <span style="color:var(--muted);font-size:11px">元/月</span>`;
+    tbody.insertAdjacentHTML('beforeend', `
+      <tr>
+        <td><span class="badge ${r.bc}">${r.badge}</span></td>
+        <td style="font-size:12px;color:var(--muted)">${r.cond}</td>
+        <td>
+          <div class="amt-big" style="color:${sell?'var(--sell2-c)':'var(--buy1-c)'}">
+            ${sell?'−':'+'}${fmt(abs)}
+          </div>
+          <div class="amt-lbl">${sell?'卖出':'买入'} ${r.z}${r.brk?'<span class="floor-tag">可破底线</span>':''}</div>
+        </td>
+        <td>${mono}</td>
+        <td style="font-size:12px;color:var(--muted)">${r.note}</td>
+      </tr>`);
+  });
+
+  runChecker();
+}
+
+// ─── Signal checker ──────────────────────────────────────────
+function runChecker() {
+  const cape  = parseFloat(document.getElementById('cCape').value);
+  const yield10y = parseFloat(document.getElementById('cYield').value);
+  const vix   = parseFloat(document.getElementById('cVix').value);
+  const dd    = parseFloat(document.getElementById('cDd').value);
+
+  // Compute & display ERP
+  const erpBox = document.getElementById('erpBox');
+  let erp = NaN;
+  if (!isNaN(cape) && cape > 0 && !isNaN(yield10y)) {
+    erp = (1 / cape - yield10y / 100) * 100;
+    const erpStr = (erp >= 0 ? '+' : '') + erp.toFixed(2) + '%';
+    const cls = erp > 2 ? 'erp-pos' : erp < -1 ? 'erp-neg' : 'erp-neu';
+    document.getElementById('erpVal').textContent = erpStr;
+    document.getElementById('erpVal').className   = 'erp-val ' + cls;
+    document.getElementById('erpFormula').textContent =
+      `= 1 ÷ ${cape.toFixed(1)} − ${yield10y.toFixed(2)}%`
+      + `  =  ${(100/cape).toFixed(2)}% − ${yield10y.toFixed(2)}%  =  ${erpStr}`;
+    erpBox.style.display = 'block';
+  } else {
+    erpBox.style.display = 'none';
+  }
+
+
+  const wrap  = document.getElementById('resultWrap');
+  const empty = document.getElementById('emptyHint');
+  if ([cape, yield10y, vix, dd].some(isNaN) || isNaN(erp)) {
+    wrap.style.display='none'; empty.style.display='block'; return;
+  }
+  wrap.style.display='block'; empty.style.display='none';
+
+  const Z   = monthlyAmt / f;
+  const sig = calcSignal(cape, erp, vix, dd);
+  const amt = tierAmt(sig.tier, Z);
+  const absAmt = Math.abs(amt);
+  const sell = amt < 0;
+
+  const CFG = {
+    sell2:{label:'【0x 暂停·撤退】极端泡沫',     action:'停止买入，执行减仓',    cls:'rc-sell2'},
+    sell1:{label:'【0x 暂停·轻减】高估确认',      action:'停止买入，温和减仓',    cls:'rc-sell1'},
+    slow: {label:'【0.5x 缓投·观望】高位减速',    action:'以半速缓投，暂不卖出',  cls:'rc-slow' },
+    norm: {label:'【1x 正常定投】',              action:'按基准节奏正常买入',     cls:'rc-norm' },
+    buy1: {label:'【1.5x 加仓】弱买入信号',       action:'触发买入信号，温和加仓', cls:'rc-buy1' },
+    buy2: {label:'【2x 加仓】中强信号',           action:'明显机会，加大买入',     cls:'rc-buy2' },
+    buy3: {label:'【3x 满仓】强信号共振',          action:'危机重拳，满仓买入',     cls:'rc-buy3' },
+  };
+  const cfg = CFG[sig.tier];
+
+  document.getElementById('resultCard').className = 'result-card ' + cfg.cls;
+  document.getElementById('resSignal').textContent = cfg.label;
+  document.getElementById('resAction').textContent = cfg.action;
+  document.getElementById('resAmount').textContent =
+    (sell ? '−' : '+') + fmt(absAmt) + ' / ' + fPerStr();
+
+  let sub = '';
+  if (f !== 1) sub = `月合计约 ${fmt(absAmt * f)}`;
+  if (sell)    sub += (sub ? '  ·  ' : '') + '实际取 min(上值, 持仓×2%÷每月次数)';
+  if (['buy2','buy3'].includes(sig.tier)) sub += (sub ? '  ·  ' : '') + '可动用底线以下资金';
+  document.getElementById('resSub').textContent = sub || ' ';
+
+  const tagsEl = document.getElementById('indTags');
+  tagsEl.innerHTML = '';
+  sig.tags.forEach(t =>
+    tagsEl.insertAdjacentHTML('beforeend',
+      `<span class="ind-tag ${t.t}">${t.l}</span>`));
+}
+
+// ─── Events ──────────────────────────────────────────────────
+document.getElementById('xVal').addEventListener('input', e => {
+  X = (parseFloat(e.target.value)||0) * 1e4;
+  if (activePreset) {
+    monthlyAmt = presetAmt(activePreset);
+    document.getElementById('monthlyAmt').value = monthlyAmt;
+  }
+  render();
+});
+
+document.getElementById('yVal').addEventListener('input', e => {
+  Y = +e.target.value / 100;
+  document.getElementById('yDisp').textContent = e.target.value + '%';
+  if (activePreset) {              // Y 影响可部署资金，联动更新
+    monthlyAmt = presetAmt(activePreset);
+    document.getElementById('monthlyAmt').value = monthlyAmt;
+  }
+  render();
+});
+
+document.getElementById('monthlyAmt').addEventListener('input', e => {
+  monthlyAmt = parseFloat(e.target.value) || 0;
+  activePreset = null;
+  highlightPreset(null);
+  render();
+});
+
+document.querySelectorAll('[name=freq]').forEach(r => r.addEventListener('change', e => {
+  f = +e.target.value; render();
+}));
+
+['cCape','cYield','cVix','cDd'].forEach(id =>
+  document.getElementById(id).addEventListener('input', runChecker));
+
+document.querySelectorAll('.strat-input').forEach(el =>
+  el.addEventListener('input', readStrategy));
+
+// ─── Market data auto-fill ────────────────────────────────────
+function initMarketData() {
+  const md  = window.MARKET_DATA;
+  const statusEl = document.getElementById('dataStatus');
+
+  if (!md) {
+    // No data file — keep all fields manual, status stays as "missing"
+    ['tag10y','tagVix','tagDd'].forEach(id => {
+      const el = document.getElementById(id);
+      el.textContent = '手动填写';
+      el.className   = 'auto-tag manual';
+    });
+    return;
+  }
+
+  // Fill values
+  document.getElementById('cYield').value = md.yield10y;
+  document.getElementById('cVix').value   = md.vix;
+  document.getElementById('cDd').value    = md.drawdown_pct;
+
+  // Mark fields as auto-filled
+  ['f10y','fVix','fDd'].forEach(id =>
+    document.getElementById(id).classList.add('auto-filled'));
+
+  // Update status banner
+  statusEl.className = 'data-status ok';
+  statusEl.innerHTML =
+    `<span class="ds-icon">✅</span>`
+    + `<span>`
+    + `<span class="ds-main">实时数据已加载</span>`
+    + `&emsp;S&amp;P 500 = ${md.sp500_current.toLocaleString()}`
+    + `&ensp;·&ensp;10 年高点 = ${md.sp500_ath.toLocaleString()}`
+    + `&ensp;·&ensp;回撤 = ${md.drawdown_pct.toFixed(1)}%`
+    + `<br><span class="ds-hint">更新于 ${md.updated}`
+    + `&ensp;·&ensp;重新运行 <span class="ds-code">fetch_market_data.py</span> 并刷新页面可更新数据</span>`
+    + `</span>`;
+
+  runChecker();
+}
+
+// ─── Init ────────────────────────────────────────────────────
+monthlyAmt = presetAmt(activePreset);   // 5年布局完的初始金额
+document.getElementById('monthlyAmt').value = monthlyAmt;
+loadSavedStrategy();   // 从 localStorage 恢复上次保存的参数
+renderLogicOverview();
+render();
+initMarketData();
+</script>
+</body>
+</html>
